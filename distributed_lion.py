@@ -85,7 +85,7 @@ def update_fn_distributed(p, grad, exp_avg, lr, wd, beta1, beta2):
     for each in all_updates:
         decoded = (each.unsqueeze(-1)>>indexes)%2==1
         flattened_decoded = decoded.squeeze().flatten()
-        bool_updates.append(restore_flattened_tensor(flattened_decoded), udpate_shape)
+        bool_updates.append(restore_flattened_tensor(flattened_decoded, udpate_shape))
 
     # majority vote on all the updates
     update = majority_vote(bool_updates) * 2 - 1
@@ -115,7 +115,11 @@ class Lion(Optimizer):
         )
 
         super().__init__(params, defaults)
-        self.update_fn = update_fn_distributed if dist.get_world_size() > 1 else update_fn
+        # this is a hack to handle non distributed launch where dist.get_world_size() can't be used
+        try:
+            self.update_fn = update_fn_distributed if dist.get_world_size() > 1 else update_fn
+        except:
+            self.update_fn = update_fn
 
     @torch.no_grad()
     def step(

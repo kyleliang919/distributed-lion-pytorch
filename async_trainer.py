@@ -1,7 +1,7 @@
 import time
 from transformers import Trainer
 from transformers.modeling_utils import unwrap_model
-class AsycTrainer(Trainer):
+class AsyncTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     def _wrap_model(self, model, training=True, dataloader=None):
