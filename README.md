@@ -28,4 +28,12 @@ torchrun --nproc_per_node 4 -m run_clm \
     --async_grad
 ```
 
-# Example launch cmd for finetuning
+# Example launch cmd for SFT training
+```
+torchrun sft_llama2.py --training_args.output_dir="sft" --lion --async_grad
+```
+
+# Example launch cmd for DPO training
+```
+torchrun dpo_llama2.py --model_name_or_path="sft/final_checkpoint" --output_dir="dpo" --lion --async_grad
+```
