@@ -136,7 +136,6 @@ class Lion(Optimizer):
             for p in filter(lambda p: exists(p.grad), group['params']):
 
                 grad, lr, wd, beta1, beta2, state = p.grad, group['lr'], group['weight_decay'], *group['betas'], self.state[p]
-
                 # init state - exponential moving average of gradient values
 
                 if len(state) == 0:

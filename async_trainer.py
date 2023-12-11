@@ -1,76 +1,90 @@
 import time
+import torch
 from transformers import Trainer
 from transformers.modeling_utils import unwrap_model
 from trl import DPOTrainer, SFTTrainer
-
+from transformers.utils import is_sagemaker_mp_enabled
 # wrapping trainer class to make sure gradient is asynced
 class AsyncTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def _wrap_model(self, model, training=True, dataloader=None):
-        # train/eval could be run multiple-times - if already wrapped, don't re-wrap it again
-        if unwrap_model(model) is not model:
-            return model
+        self.accelerator.sync_gradients = None
 
-        # Multi-gpu training (should be after apex fp16 initialization) / 8bit models does not support DDP
-        if self.args.n_gpu > 1 and not getattr(model, "is_loaded_in_8bit", False):
-            model = model
+    def training_step(self, model, inputs):
+        # make sure the gradient is not automatically synced
+        with model.no_sync():
+            model.train()
+            inputs = self._prepare_inputs(inputs)
 
-        if self.args.jit_mode_eval:
-            start_time = time.time()
-            model = self.torch_jit_model_eval(model, dataloader, training)
-            self.jit_compilation_time = round(time.time() - start_time, 4)
+            if is_sagemaker_mp_enabled():
+                loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+                return loss_mb.reduce_mean().detach().to(self.args.device)
 
-        # Note: in torch.distributed mode, there's no point in wrapping the model
-        # inside a DistributedDataParallel as we'll be under `no_grad` anyways.
-        if not training:
-            return model
-        return model
+            with self.compute_loss_context_manager():
+                loss = self.compute_loss(model, inputs)
+
+            if self.args.n_gpu > 1:
+                loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+            if self.use_apex:
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                self.accelerator.backward(loss)
+            return loss.detach() / self.args.gradient_accumulation_steps
 
 # wrapping SFT trainer class to make sure gradient is asynced
 class AsyncSFTTrainer(SFTTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def _wrap_model(self, model, training=True, dataloader=None):
-        # train/eval could be run multiple-times - if already wrapped, don't re-wrap it again
-        if unwrap_model(model) is not model:
-            return model
 
-        # Multi-gpu training (should be after apex fp16 initialization) / 8bit models does not support DDP
-        if self.args.n_gpu > 1 and not getattr(model, "is_loaded_in_8bit", False):
-            model = model
+    def training_step(self, model, inputs):
+        # make sure the gradient is not automatically synced
+        with model.no_sync():
+            model.train()
+            inputs = self._prepare_inputs(inputs)
 
-        if self.args.jit_mode_eval:
-            start_time = time.time()
-            model = self.torch_jit_model_eval(model, dataloader, training)
-            self.jit_compilation_time = round(time.time() - start_time, 4)
+            if is_sagemaker_mp_enabled():
+                loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+                return loss_mb.reduce_mean().detach().to(self.args.device)
 
-        # Note: in torch.distributed mode, there's no point in wrapping the model
-        # inside a DistributedDataParallel as we'll be under `no_grad` anyways.
-        if not training:
-            return model
-        return model
+            with self.compute_loss_context_manager():
+                loss = self.compute_loss(model, inputs)
+
+            if self.args.n_gpu > 1:
+                loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+            if self.use_apex:
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                self.accelerator.backward(loss)
+            return loss.detach() / self.args.gradient_accumulation_steps
 
 # wrapping DPO trainer class to make sure gradient is asynced
 class AsyncDPOTrainer(DPOTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def _wrap_model(self, model, training=True, dataloader=None):
-        # train/eval could be run multiple-times - if already wrapped, don't re-wrap it again
-        if unwrap_model(model) is not model:
-            return model
 
-        # Multi-gpu training (should be after apex fp16 initialization) / 8bit models does not support DDP
-        if self.args.n_gpu > 1 and not getattr(model, "is_loaded_in_8bit", False):
-            model = model
+    def training_step(self, model, inputs):
+        #  make sure the gradient is not automatically synced
+        with model.no_sync():
+            model.train()
+            inputs = self._prepare_inputs(inputs)
 
-        if self.args.jit_mode_eval:
-            start_time = time.time()
-            model = self.torch_jit_model_eval(model, dataloader, training)
-            self.jit_compilation_time = round(time.time() - start_time, 4)
+            if is_sagemaker_mp_enabled():
+                loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+                return loss_mb.reduce_mean().detach().to(self.args.device)
 
-        # Note: in torch.distributed mode, there's no point in wrapping the model
-        # inside a DistributedDataParallel as we'll be under `no_grad` anyways.
-        if not training:
-            return model
-        return model
+            with self.compute_loss_context_manager():
+                loss = self.compute_loss(model, inputs)
+
+            if self.args.n_gpu > 1:
+                loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+            if self.use_apex:
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                self.accelerator.backward(loss)
+            return loss.detach() / self.args.gradient_accumulation_steps

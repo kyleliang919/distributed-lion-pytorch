@@ -32,6 +32,7 @@ from typing import Optional
 import datasets
 import evaluate
 import torch
+torch.set_printoptions(precision=10)
 from datasets import load_dataset
 
 import transformers
