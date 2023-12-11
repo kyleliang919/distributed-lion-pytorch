@@ -30,10 +30,10 @@ torchrun --nproc_per_node 4 -m run_clm \
 
 # Example launch cmd for SFT training
 ```
-torchrun sft_llama2.py --training_args.output_dir="sft" --lion --async_grad
+torchrun --nproc_per_node 4 -m sft_llama2 --training_args.output_dir="sft" --lion --async_grad
 ```
 
 # Example launch cmd for DPO training
 ```
-torchrun dpo_llama2.py --model_name_or_path="sft/final_checkpoint" --output_dir="dpo" --lion --async_grad
+torchrun --nproc_per_node 4 -m dpo_llama2 --model_name_or_path="sft/final_checkpoint" --output_dir="dpo" --lion --async_grad
 ```
