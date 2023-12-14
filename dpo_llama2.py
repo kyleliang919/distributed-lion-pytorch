@@ -12,6 +12,7 @@ from trl import DPOTrainer
 from distributed_lion import Lion
 from async_trainer import AsyncDPOTrainer
 
+
 # Define and parse arguments.
 @dataclass
 class ScriptArguments:
@@ -74,6 +75,7 @@ class ScriptArguments:
             "https://github.com/huggingface/transformers/issues/22482#issuecomment-1595790992"
         },
     )
+
     lion: Optional[bool] = field(default = False, metadata = {"help": "whether to use lion optimizer"})
     async_grad: Option[bool] = field(default = False, metadata={"help": "whether to sync gradient between different workers")
 
@@ -210,7 +212,8 @@ if __name__ == "__main__":
         optimizer = torch.optim.AdamW(model.parameters(), lr=training_args.learning_rate, weight_decay = 0.1)
         optimizers = (optimizer, transformers.get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
 
-    trainer_class = AsyncDPOTrainer if script_args.async_grad else DPOTrainer
+    trainer_class = AsyncDPOTrainer if script_args.async_grad else DPOTrainer 
+
     # 5. initialize the DPO trainer
     dpo_trainer = trainer_class(
         model,
@@ -223,7 +226,7 @@ if __name__ == "__main__":
         peft_config=peft_config,
         max_prompt_length=script_args.max_prompt_length,
         max_length=script_args.max_length,
-        optimizers = optimizers
+	optimizers = optimizers
     )
 
     # 6. train
