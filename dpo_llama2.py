@@ -7,6 +7,7 @@ import torch
 from datasets import Dataset, load_dataset
 from peft import LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser, TrainingArguments
+from transformers import get_cosine_schedule_with_warmup
 
 from trl import DPOTrainer
 from distributed_lion import Lion
@@ -206,11 +207,11 @@ if __name__ == "__main__":
     )
 
     if script_args.lion:
-        optimizer = Lion(model.parameters(), lr=training_args.learning_rate, weight_decay=training_args.weight_decay)
-        optimizers = (optimizer, transformers.get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
+        optimizer = Lion(base_model.parameters(), lr=training_args.learning_rate, weight_decay=training_args.weight_decay)
+        optimizers = (optimizer, get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
     else:
-        optimizer = torch.optim.AdamW(model.parameters(), lr=training_args.learning_rate, weight_decay = 0.1)
-        optimizers = (optimizer, transformers.get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
+        optimizer = torch.optim.AdamW(base_model.parameters(), lr=training_args.learning_rate, weight_decay = 0.1)
+        optimizers = (optimizer, get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
 
     trainer_class = AsyncDPOTrainer if script_args.async_grad else DPOTrainer 
 
