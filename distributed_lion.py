@@ -95,6 +95,46 @@ def update_fn_distributed(p, grad, exp_avg, lr, wd, beta1, beta2):
 
     exp_avg.mul_(beta2).add_(grad, alpha = 1 - beta2)
 
+def update_fn_distributed_stoc(p, grad, exp_avg, lr, wd, beta1, beta2, max_grad_norm):
+    # stochastic binarization over workers
+    # stepweight decay
+    
+    p.data.mul_(1 - lr * wd)
+
+    # weight update
+    # compute the aboslute range r
+    r = (1 + 1/beta1) * max_grad_norm
+    raw_update = exp_avg.clone().mul_(beta1).add(grad, alpha = 1 - beta1)
+    update = torch.bernoulli((raw_update + r)/(2 * r)).sign_()
+    
+    # pad the flattened tensor to multiple of 8
+    padded_update, udpate_shape = flatten_and_pad(update > 0)
+
+
+    # reshape the tensor to prepare for comparession and define the indexes for bit shift
+    bool_tensor = padded_update.view(-1, 8).unsqueeze(0)
+    indexes = torch.arange(8).unsqueeze(0).unsqueeze(0).to(grad.device)
+    uint8_tensor = (bool_tensor.byte() << indexes).sum(dim=-1)
+
+    # all gather from all other workers
+    all_updates = [torch.zeros_like(uint8_tensor) for _ in range(dist.get_world_size())]
+    dist.all_gather(all_updates, uint8_tensor)
+
+    # decode back into bool tensor
+    bool_updates = []
+    for each in all_updates:
+        decoded = (each.unsqueeze(-1)>>indexes)%2==1
+        flattened_decoded = decoded.squeeze().flatten()
+        bool_updates.append(restore_flattened_tensor(flattened_decoded, udpate_shape))
+
+    # majority vote on all the updates
+    update = majority_vote(bool_updates) * 2 - 1
+    p.add_(update, alpha = -lr)
+
+    # decay the momentum running average coefficient
+
+    exp_avg.mul_(beta2).add_(grad, alpha = 1 - beta2)
+
 # class
 
 class Lion(Optimizer):
@@ -103,7 +143,8 @@ class Lion(Optimizer):
         params,
         lr: float = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
-        weight_decay: float = 0.0
+        weight_decay: float = 0.0,
+        max_grad_norm = None
     ):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
@@ -117,7 +158,10 @@ class Lion(Optimizer):
         super().__init__(params, defaults)
         # this is a hack to handle non distributed launch where dist.get_world_size() can't be used
         try:
-            self.update_fn = update_fn_distributed if dist.get_world_size() > 1 else update_fn
+            if max_grad_norm is None:
+                self.update_fn = update_fn_distributed if dist.get_world_size() > 1 else update_fn
+            else:
+                self.update_fn = lambda *args, **kwargs: update_fn_distributed_stoc(*args, **kwargs, max_grad_norm = self.max_grad_norm) if dist.get_world_size() > 1 else update_fn
         except:
             self.update_fn = update_fn
 
