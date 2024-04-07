@@ -3,7 +3,7 @@ Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.
 ![distributed_lion_algo](img/distributed_lion_algo.png)
 
 ## Example Usages
-### using the optimizer 
+### How to use the optimizer
 ```python
 from distributed_lion import Lion
 from async_trainer import AsyncTrainer
