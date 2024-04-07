@@ -1,5 +1,6 @@
 # Distributed_lion
-Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.org/abs/2404.00438) that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process (16 bit -> 1 bit -> 16 bit), but it works and it's good starting point to investigate async updates and low precision optimizers. One future item is to figure out an efficient implementation of the algorithm. 
+Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.org/abs/2404.00438) that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process (16 bit -> 1 bit -> 16 bit), but it works and it's a good starting point to investigate async updates and low precision optimizers (No special package is required, only pytorch and transformers.). One future item is to figure out an efficient implementation of the algorithm. 
+
 ![distributed_lion_algo](img/distributed_lion_algo.png)
 
 ## Example Usages
@@ -68,4 +69,15 @@ torchrun --nproc_per_node 4 -m dpo_llama2 \
          --output_dir="dpo" \
          --lion \
          --async_grad
+```
+
+## Citation
+If you find distributed lion or this repo useful, please consider citing the following paper
+```bibtex
+@article{liu2024communication,
+  title={Communication Efficient Distributed Training with Distributed Lion},
+  author={Liu, Bo and Wu, Lemeng and Chen, Lizhang and Liang, Kaizhao and Zhu, Jiaxu and Liang, Chen and Krishnamoorthi, Raghuraman and Liu, Qiang},
+  journal={arXiv preprint arXiv:2404.00438},
+  year={2024}
+}
 ```
