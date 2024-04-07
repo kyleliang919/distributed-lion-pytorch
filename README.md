@@ -1,7 +1,19 @@
 # Distributed_lion
 Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.org/abs/2404.00438) that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process (16 bit -> 1 bit -> 16 bit), but it works and it's good starting point to investigate async updates and low precision optimizers. One future item is to figure out an efficient implementation of the algorithm. 
+![distributed_lion_algo](img/distributed_lion_algo.png)
 
-# Example launch cmd for continuous pretraining
+## Example Usages
+### using the optimizer 
+```python
+from distributed_lion import Lion
+from async_trainer import AsyncTrainer
+model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
+optimizer = Lion(model.parameters(), lr=training_args.learning_rate, weight_decay=training_args.weight_decay)
+optimizers = (optimizer, transformers.get_cosine_schedule_with_warmup(optimizer, training_args.warmup_steps, training_args.max_steps))
+trainer = AsyncTrainer(..., optimizers = optimizers, ...) # make sure to use the async trainer to stop the gradient from syncing
+```
+
+### Example launch cmd for continuous pretraining of GPT-2
 ```
 torchrun --nproc_per_node 4 -m run_clm \
     --config_name gpt2 \
@@ -24,7 +36,7 @@ torchrun --nproc_per_node 4 -m run_clm \
     --async_grad
 ```
 
-# Example launch cmd for SFT training
+### Example launch cmd for SFT training
 ```
 torchrun --nproc_per_node 4 -m sft_llama2 \
     --output_dir="./sft" \
@@ -49,7 +61,7 @@ torchrun --nproc_per_node 4 -m sft_llama2 \
      --async_grad
 ```
 
-# Example launch cmd for DPO training
+### Example launch cmd for DPO training
 ```
 torchrun --nproc_per_node 4 -m dpo_llama2 \
          --model_name_or_path="sft/final_checkpoint" \
