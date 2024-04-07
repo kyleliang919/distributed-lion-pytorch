@@ -1,5 +1,5 @@
 # Distributed_lion
-Pytorch implementation of Distributed Lion optimizer that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process. One future todo item is to figure out an efficient implementation.
+Pytorch implementation of Distributed Lion Optimizer that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process. One future todo item is to figure out an efficient implementation.
 
 # Example launch cmd for continuous pretraining
 ```
