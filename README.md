@@ -1,5 +1,5 @@
 # Distributed_lion
-Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.org/abs/2404.00438) that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process (16 bit -> 1 bit -> 16 bit), but it works and it's a good starting point to investigate async updates and low precision optimizers (No special package is required, only pytorch and transformers.). One future item is to figure out an efficient implementation of the algorithm. 
+Unofficial Pytorch implementation of [Distributed Lion Optimizer](https://arxiv.org/abs/2404.00438) that should work on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process (16 bit -> 1 bit -> 16 bit), but it works and it's a good starting point to investigate async updates and low precision optimizers (No special package is required, only pytorch and transformers.). One future item is to figure out an efficient implementation of the algorithm. 
 
 ![distributed_lion_algo](img/distributed_lion_algo.png)
 
