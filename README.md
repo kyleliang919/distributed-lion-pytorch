@@ -1,12 +1,8 @@
 # Distributed_lion
-Distributed Lion optimizer that works on extremely low bandwidth and robust against worker drop-out
+Pytorch implementation of Distributed Lion optimizer that works on extremely low bandwidth and robust against worker drop-out. It's currently slow deal to the encoding and decoding process. One future todo item is to figure out an efficient implementation.
 
 # Example launch cmd for continuous pretraining
 ```
-export TRANSFORMERS_CACHE=/nvmedata/kaizhaol/
-export HF_DATASETS_CACHE=/nvmedata/kaizhaol/
-export HF_HOME=/nvmedata/kaizhaol/
-
 torchrun --nproc_per_node 4 -m run_clm \
     --config_name gpt2 \
     --tokenizer_name gpt2 \
@@ -15,7 +11,7 @@ torchrun --nproc_per_node 4 -m run_clm \
     --per_device_eval_batch_size 24 \
     --do_train \
     --do_eval \
-    --output_dir /nvmedata/kaizhaol/gpt2_lion_wd_0.1 \
+    --output_dir gpt2_lion_wd_0.1 \
     --report_to wandb \
     --torch_dtype bfloat16 \
     --gradient_accumulation_steps 8 \
